@@ -7,13 +7,6 @@ import { Headphones, Radio, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { COUNTRY_LIVE, TOTAL_PARTYING } from "@/lib/mock-data";
 import { useNightlink } from "@/lib/store";
 import type { Club, MusicSource } from "@/lib/types";
@@ -38,8 +31,7 @@ function ClubCard({
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={false}
       whileHover={{ y: -2 }}
       className="group overflow-hidden rounded-2xl border border-white/10 bg-card/60 transition hover:border-violet-500/40"
     >
@@ -184,23 +176,23 @@ export function WorldLobby() {
         </div>
         <div className="relative mx-auto flex min-h-[70vh] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6">
           <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 8 }}
+            animate={{ y: 0 }}
             className="font-display text-sm tracking-[0.35em] text-violet-300"
           >
             NIGHTLINK
           </motion.p>
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 16 }}
+            animate={{ y: 0 }}
             transition={{ delay: 0.08 }}
             className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl neon-text"
           >
             THE WORLD IS STILL AWAKE.
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 12 }}
+            animate={{ y: 0 }}
             transition={{ delay: 0.16 }}
             className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg"
           >
@@ -210,9 +202,9 @@ export function WorldLobby() {
             </span>
           </motion.p>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.28 }}
+            initial={{ y: 8 }}
+            animate={{ y: 0 }}
+            transition={{ delay: 0.2 }}
             className="mt-8 flex flex-wrap gap-3"
           >
             <Button
@@ -249,9 +241,9 @@ export function WorldLobby() {
           {COUNTRY_LIVE.map((c, i) => (
             <motion.div
               key={c.country}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.04 }}
+              initial={{ y: 6 }}
+              animate={{ y: 0 }}
+              transition={{ delay: i * 0.03 }}
               className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3"
             >
               <p className="text-sm">
@@ -376,20 +368,23 @@ function FilterSelect({
     typeof o === "string" ? { value: o, label: o } : o
   );
   return (
-    <Select value={value} onValueChange={(v) => onChange(v ?? allValue ?? "all")}>
-      <SelectTrigger className={cn("w-[140px] border-white/10 bg-white/5")}>
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
+    <label className="flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 w-[150px] rounded-lg border border-white/10 bg-white/5 px-2 text-sm text-white outline-none focus:border-violet-500/50"
+        aria-label={label}
+      >
         {allValue !== undefined && (
-          <SelectItem value={allValue}>All {label.toLowerCase()}</SelectItem>
+          <option value={allValue}>All {label.toLowerCase()}</option>
         )}
         {items.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
+          <option key={o.value} value={o.value}>
             {o.label}
-          </SelectItem>
+          </option>
         ))}
-      </SelectContent>
-    </Select>
+      </select>
+    </label>
   );
 }

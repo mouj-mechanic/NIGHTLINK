@@ -71,9 +71,9 @@ export function EventsPage() {
         {list.map((e, i) => (
           <motion.article
             key={e.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
+            initial={{ y: 8 }}
+            animate={{ y: 0 }}
+            transition={{ delay: i * 0.03 }}
             className="overflow-hidden rounded-2xl border border-white/10 bg-card/50"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}

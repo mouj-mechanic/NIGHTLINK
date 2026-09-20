@@ -27,8 +27,8 @@ export function AgeGate() {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ y: 12 }}
+        animate={{ y: 0 }}
         className="mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-[#0c0a14] p-8 shadow-2xl"
       >
         <p className="font-display text-xs tracking-[0.3em] text-amber-300/90">

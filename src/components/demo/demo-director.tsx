@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
@@ -63,10 +63,14 @@ export function DemoDirector() {
   const conversations = useNightlink((s) => s.conversations);
   const resetAge = useNightlink((s) => s.resetAgeVerification);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("demo") === "1") setDemoMode(true);
+  }, [searchParams, setDemoMode]);
 
   useEffect(() => {
     if (guidedStep === null) return;
-    // Auto-advance reactions for certain steps
   }, [guidedStep]);
 
   if (!demoMode) return null;
@@ -127,8 +131,8 @@ export function DemoDirector() {
   return (
     <AnimatePresence>
       <motion.aside
-        initial={{ x: 40, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
+        initial={{ x: 24 }}
+        animate={{ x: 0 }}
         className="fixed bottom-4 right-4 z-50 w-[min(100vw-2rem,340px)] rounded-2xl border border-violet-500/30 bg-[#0c0a14]/95 p-4 shadow-2xl backdrop-blur-xl"
       >
         <div className="flex items-start justify-between gap-2">
