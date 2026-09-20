@@ -6,11 +6,31 @@ import type {
   UserProfile,
 } from "./types";
 
-const art = (seed: string, hue = 270) =>
-  `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${hue.toString(16).padStart(6, "0")}`;
-
-const avatar = (seed: string) =>
-  `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+/** Local demo-safe assets under /public — no remote CDN dependency. */
+const flyer = (clubId: string) => `/flyers/${clubId}.svg`;
+const EVENT_FLYERS = [
+  "neon-athens",
+  "pulse-paris",
+  "sofia-voltage",
+  "berlin-echo",
+  "london-grid",
+  "roof-tunis",
+  "barca-signal",
+  "sao-pulse",
+] as const;
+const art = (seed: string, _hue = 270) => {
+  const hash = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return `/flyers/${EVENT_FLYERS[hash % EVENT_FLYERS.length]}.svg`;
+};
+const avatar = (seed: string) => {
+  const slug = seed
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/([A-Za-z])(\d)/g, "$1-$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `/avatars/${slug}.svg`;
+};
 
 export const CURRENT_USER: UserProfile = {
   pseudo: "You",
@@ -44,6 +64,7 @@ export const CLUBS: Club[] = [
     name: "Neon Athens",
     djName: "DJ KOSMOS",
     djAvatar: avatar("kosmos"),
+    flyer: flyer("neon-athens"),
     city: "Athens",
     country: "Greece",
     flag: "🇬🇷",
@@ -51,7 +72,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Midnight Signals",
       artist: "NOVA",
-      artwork: art("midnight-signals", 0x6b2cff),
+      artwork: flyer("neon-athens"),
       progress: 42,
       durationSec: 384,
       source: "Spotify",
@@ -70,6 +91,7 @@ export const CLUBS: Club[] = [
     name: "Pulse Paris",
     djName: "Lina Verve",
     djAvatar: avatar("lina-verve"),
+    flyer: flyer("pulse-paris"),
     city: "Paris",
     country: "France",
     flag: "🇫🇷",
@@ -77,7 +99,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Seine After Dark",
       artist: "Atelier 12",
-      artwork: art("seine", 0x1a6bff),
+      artwork: flyer("pulse-paris"),
       progress: 61,
       durationSec: 312,
       source: "Deezer",
@@ -96,6 +118,7 @@ export const CLUBS: Club[] = [
     name: "Sofia Voltage",
     djName: "Niki Drift",
     djAvatar: avatar("niki-drift"),
+    flyer: flyer("sofia-voltage"),
     city: "Sofia",
     country: "Bulgaria",
     flag: "🇧🇬",
@@ -103,7 +126,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Vitosha Pulse",
       artist: "GRID",
-      artwork: art("vitosha", 0xff2d8a),
+      artwork: flyer("sofia-voltage"),
       progress: 18,
       durationSec: 420,
       source: "Own",
@@ -121,6 +144,7 @@ export const CLUBS: Club[] = [
     name: "Berlin Echo",
     djName: "Klaus Amplitude",
     djAvatar: avatar("klaus"),
+    flyer: flyer("berlin-echo"),
     city: "Berlin",
     country: "Germany",
     flag: "🇩🇪",
@@ -128,7 +152,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Kreuzberg Drift",
       artist: "Mono Field",
-      artwork: art("kreuzberg", 0x2dffc8),
+      artwork: flyer("berlin-echo"),
       progress: 77,
       durationSec: 540,
       source: "Spotify",
@@ -147,6 +171,7 @@ export const CLUBS: Club[] = [
     name: "London Grid",
     djName: "Nova Lane",
     djAvatar: avatar("nova-lane"),
+    flyer: flyer("london-grid"),
     city: "London",
     country: "UK",
     flag: "🇬🇧",
@@ -154,7 +179,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Thames Skip",
       artist: "RIVET",
-      artwork: art("thames", 0xffa31a),
+      artwork: flyer("london-grid"),
       progress: 33,
       durationSec: 248,
       source: "YouTube",
@@ -172,6 +197,7 @@ export const CLUBS: Club[] = [
     name: "Roof Tunis",
     djName: "Amira Frequencies",
     djAvatar: avatar("amira"),
+    flyer: flyer("roof-tunis"),
     city: "Tunis",
     country: "Tunisia",
     flag: "🇹🇳",
@@ -179,7 +205,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Medina Horizon",
       artist: "SAHARA LAB",
-      artwork: art("medina", 0xff6b2c),
+      artwork: flyer("roof-tunis"),
       progress: 55,
       durationSec: 360,
       source: "Deezer",
@@ -197,6 +223,7 @@ export const CLUBS: Club[] = [
     name: "Barça Signal",
     djName: "Miquel Orbit",
     djAvatar: avatar("miquel"),
+    flyer: flyer("barca-signal"),
     city: "Barcelona",
     country: "Spain",
     flag: "🇪🇸",
@@ -204,7 +231,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Gothic Quarter",
       artist: "Costa Line",
-      artwork: art("gothic", 0x8a2cff),
+      artwork: flyer("barca-signal"),
       progress: 12,
       durationSec: 298,
       source: "Spotify",
@@ -222,6 +249,7 @@ export const CLUBS: Club[] = [
     name: "São Pulse",
     djName: "Carla Neon",
     djAvatar: avatar("carla"),
+    flyer: flyer("sao-pulse"),
     city: "São Paulo",
     country: "Brazil",
     flag: "🇧🇷",
@@ -229,7 +257,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Avenida Loop",
       artist: "FAVELA WAVE",
-      artwork: art("avenida", 0x00d68f),
+      artwork: flyer("sao-pulse"),
       progress: 88,
       durationSec: 276,
       source: "Own",
@@ -248,6 +276,7 @@ export const CLUBS: Club[] = [
     name: "Amsterdam Canal",
     djName: "Dutch Frequency",
     djAvatar: avatar("dutch"),
+    flyer: flyer("ams-canal"),
     city: "Amsterdam",
     country: "Netherlands",
     flag: "🇳🇱",
@@ -255,7 +284,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "North Sea Glow",
       artist: "DELTA",
-      artwork: art("northsea", 0x2c8aff),
+      artwork: flyer("ams-canal"),
       progress: 49,
       durationSec: 402,
       source: "Spotify",
@@ -273,6 +302,7 @@ export const CLUBS: Club[] = [
     name: "Tokyo Neon",
     djName: "Kenji Pulse",
     djAvatar: avatar("kenji-dj"),
+    flyer: flyer("tokyo-neon"),
     city: "Tokyo",
     country: "Japan",
     flag: "🇯🇵",
@@ -280,7 +310,7 @@ export const CLUBS: Club[] = [
     track: {
       title: "Shibuya Afterimage",
       artist: "PIXEL RAIN",
-      artwork: art("shibuya", 0xff2d6a),
+      artwork: flyer("tokyo-neon"),
       progress: 26,
       durationSec: 220,
       source: "YouTube",
@@ -308,11 +338,46 @@ export const COUNTRY_LIVE: { country: string; flag: string; count: number }[] = 
   { country: "Tunisia", flag: "🇹🇳", count: 398 },
 ];
 
+const LOCAL_AVATARS = [
+  "luna-beat",
+  "rio-soul",
+  "tunis-groove",
+  "kenji-pulse",
+  "sofia-night",
+  "rico-808",
+  "alex-bass",
+  "amira",
+  "carla",
+  "dutch",
+  "klaus",
+  "miquel",
+  "nova-lane",
+  "niki-drift",
+  "lina-verve",
+] as const;
+
+const NAMED_AVATAR_IDS = new Set([
+  "maya-wave",
+  "alex-bass",
+  "sofia-night",
+  "rico-808",
+  "luna-beat",
+  "rio-soul",
+  "kenji-pulse",
+  "tunis-groove",
+]);
+
 function makeAttendee(
   partial: Partial<Attendee> & Pick<Attendee, "id" | "pseudo" | "city" | "country" | "flag">
 ): Attendee {
+  const hash = [...partial.id].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const poolPick =
+    `/avatars/${LOCAL_AVATARS[Math.abs(hash) % LOCAL_AVATARS.length]}.svg`;
+  const resolved =
+    partial.avatar ??
+    (NAMED_AVATAR_IDS.has(partial.id) ? `/avatars/${partial.id}.svg` : poolPick);
+
   return {
-    avatar: avatar(partial.pseudo),
     ageRange: "24–28",
     online: true,
     availability: "Open to talk",
@@ -323,10 +388,11 @@ function makeAttendee(
     gear: "AirPods Max · ANC",
     recentParties: ["Neon Athens", "Berlin Echo"],
     badges: ["Early Adopter"],
-    photos: [art(`${partial.pseudo}-1`), art(`${partial.pseudo}-2`)],
     mutualInterests: ["Melodic Techno", "Late nights"],
     compatibility: 62,
+    photos: [resolved, poolPick],
     ...partial,
+    avatar: partial.avatar ?? resolved,
   };
 }
 

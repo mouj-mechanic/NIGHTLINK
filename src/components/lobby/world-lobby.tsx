@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Headphones, Radio, Search, Users } from "lucide-react";
@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { COUNTRY_LIVE, TOTAL_PARTYING } from "@/lib/mock-data";
 import { useNightlink } from "@/lib/store";
 import type { Club, MusicSource } from "@/lib/types";
+import {
+  CinematicEntrance,
+  type CinematicPhase,
+} from "@/components/cinematic/cinematic-entrance";
 
 function LiveBadge() {
   return (
@@ -20,7 +24,7 @@ function LiveBadge() {
   );
 }
 
-function ClubCard({
+function PosterCard({
   club,
   onEnter,
 }: {
@@ -31,82 +35,87 @@ function ClubCard({
     <motion.article
       layout
       initial={false}
-      whileHover={{ y: -2 }}
-      className="group overflow-hidden rounded-2xl border border-white/10 bg-card/60 transition hover:border-violet-500/40"
+      whileHover={{ y: -4 }}
+      className="group relative overflow-hidden rounded-none border border-white/10 bg-black"
+      data-testid="poster-card"
     >
-      <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-violet-900/40 via-[#12101a] to-blue-900/30">
+      <div className="relative aspect-[3/4] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={club.track.artwork}
+          src={club.flyer || club.track.artwork}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-screen"
+          className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0812] via-transparent to-transparent" />
-        <div className="absolute left-3 top-3 flex items-center gap-2">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+        <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
           <LiveBadge />
-          <Badge variant="secondary" className="bg-black/40 text-[10px]">
-            {club.musicSource} Connected
+          <Badge
+            variant="secondary"
+            className="rounded-none bg-black/55 text-[10px] tracking-wide"
+          >
+            {club.musicSource}
           </Badge>
         </div>
-        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={club.djAvatar}
-            alt=""
-            className="h-12 w-12 rounded-full border-2 border-white/20 bg-muted"
-          />
-          <div className="text-right text-xs text-white/80">
-            <p className="font-medium">{club.listeners}/{club.capacity}</p>
-            <p className="text-[10px] text-muted-foreground">listening</p>
+        <div className="absolute inset-x-0 bottom-0 space-y-3 p-4">
+          <div className="flex items-end gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={club.djAvatar}
+              alt=""
+              className="h-14 w-14 rounded-full border-2 border-white/30 bg-muted object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-[10px] tracking-[0.35em] text-violet-200">
+                {club.flag} {club.city.toUpperCase()}
+              </p>
+              <h3 className="font-display text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                {club.name}
+              </h3>
+              <p className="truncate text-sm text-white/70">
+                {club.djName} · {club.genre}
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="space-y-3 p-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-lg font-semibold text-white">
-              {club.name}
-            </h3>
-            <span>{club.flag}</span>
+          <div className="border-t border-white/15 pt-3">
+            <p className="truncate font-display text-sm text-white">
+              {club.track.title}
+            </p>
+            <p className="truncate text-xs text-white/60">
+              {club.track.artist} · {club.mood}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-white/55">
+              <span className="inline-flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {club.listeners}/{club.capacity}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Headphones className="h-3 w-3" />
+                {club.headphoneRec}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Radio className="h-3 w-3" />
+                {club.musicSource} Connected
+              </span>
+              {club.friendsInside ? (
+                <span className="text-violet-300">
+                  {club.friendsInside} friends inside
+                </span>
+              ) : null}
+              {club.isUserCreated && (
+                <Badge className="rounded-none bg-amber-500/20 text-amber-200">
+                  Your room
+                </Badge>
+              )}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {club.djName} · {club.city}, {club.country}
-          </p>
+          <Link
+            href={`/club/${club.id}`}
+            onClick={() => onEnter(club.id)}
+            className="inline-flex h-10 w-full items-center justify-center bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-semibold tracking-wide text-white"
+          >
+            Enter room
+          </Link>
         </div>
-        <div className="rounded-xl bg-white/5 px-3 py-2">
-          <p className="truncate text-sm font-medium text-white">
-            {club.track.title}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {club.track.artist} · {club.genre}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Headphones className="h-3 w-3" />
-            {club.headphoneRec}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Radio className="h-3 w-3" />
-            {club.mood}
-          </span>
-          {club.friendsInside ? (
-            <span className="inline-flex items-center gap-1 text-violet-300">
-              <Users className="h-3 w-3" />
-              {club.friendsInside} friends inside
-            </span>
-          ) : null}
-          {club.isUserCreated && (
-            <Badge className="bg-amber-500/20 text-amber-200">Your room</Badge>
-          )}
-        </div>
-        <Link
-          href={`/club/${club.id}`}
-          onClick={() => onEnter(club.id)}
-          className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-medium text-white"
-        >
-          Enter room
-        </Link>
       </div>
     </motion.article>
   );
@@ -115,11 +124,25 @@ function ClubCard({
 export function WorldLobby() {
   const clubs = useNightlink((s) => s.clubs);
   const requestEnter = useNightlink((s) => s.requestEnterClub);
+  const hydrated = useNightlink((s) => s.hydrated);
+  const introComplete = useNightlink((s) => s.introComplete);
+  const skipIntro = useNightlink((s) => s.skipIntro);
+  const cinematicForcePhase = useNightlink((s) => s.cinematicForcePhase);
   const [q, setQ] = useState("");
   const [country, setCountry] = useState<string>("all");
   const [genre, setGenre] = useState<string>("all");
   const [platform, setPlatform] = useState<string>("all");
   const [sort, setSort] = useState<string>("populated");
+  const [showCinematic, setShowCinematic] = useState(false);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setShowCinematic(!(introComplete || skipIntro));
+  }, [hydrated, introComplete, skipIntro]);
+
+  const onIntroComplete = useCallback(() => {
+    setShowCinematic(false);
+  }, []);
 
   const countries = useMemo(
     () => [...new Set(clubs.map((c) => c.country))],
@@ -160,6 +183,15 @@ export function WorldLobby() {
 
   return (
     <div>
+      {showCinematic && (
+        <CinematicEntrance
+          onComplete={onIntroComplete}
+          forcePhase={
+            (cinematicForcePhase as CinematicPhase | null) ?? undefined
+          }
+        />
+      )}
+
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-violet-600/20 blur-3xl" />
@@ -172,21 +204,21 @@ export function WorldLobby() {
             }}
           />
         </div>
-        <div className="relative mx-auto flex min-h-[70vh] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6">
+        <div className="relative mx-auto flex min-h-[42vh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6">
           <motion.p
             initial={{ y: 8 }}
             animate={{ y: 0 }}
             className="font-display text-sm tracking-[0.35em] text-violet-300"
           >
-            NIGHTLINK
+            NIGHTLINK · PARTY HALL
           </motion.p>
           <motion.h1
             initial={{ y: 16 }}
             animate={{ y: 0 }}
             transition={{ delay: 0.08 }}
-            className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl neon-text"
+            className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl neon-text"
           >
-            THE WORLD IS STILL AWAKE.
+            YOU&apos;RE INSIDE.
           </motion.h1>
           <motion.p
             initial={{ y: 12 }}
@@ -194,7 +226,7 @@ export function WorldLobby() {
             transition={{ delay: 0.16 }}
             className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg"
           >
-            Enter the room. Feel the crowd. Find your table.{" "}
+            Premium rooms. Live posters. Pick a night.{" "}
             <span className="text-white">
               {TOTAL_PARTYING.toLocaleString()} people partying right now.
             </span>
@@ -221,7 +253,7 @@ export function WorldLobby() {
                   ?.scrollIntoView({ behavior: "smooth" })
               }
             >
-              Browse clubs
+              Browse posters
             </button>
           </motion.div>
         </div>
@@ -258,11 +290,11 @@ export function WorldLobby() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="font-display text-xl font-semibold text-white sm:text-2xl">
-              Clubs open now
+              Party discovery hall
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {filtered.length} rooms · music source badges are connection
-              metadata only
+              {filtered.length} event posters · music source badges are
+              connection metadata only
             </p>
           </div>
         </div>
@@ -310,9 +342,9 @@ export function WorldLobby() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((club) => (
-            <ClubCard key={club.id} club={club} onEnter={enter} />
+            <PosterCard key={club.id} club={club} onEnter={enter} />
           ))}
         </div>
         {filtered.length === 0 && (

@@ -24,6 +24,7 @@ import {
   Music2,
   Zap,
   Plus,
+  SkipForward,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNightlink } from "@/lib/store";
@@ -81,6 +82,9 @@ export function DemoDirector() {
   const upgradeVip = useNightlink((s) => s.upgradeVip);
   const sendTableGift = useNightlink((s) => s.sendTableGift);
   const completeAgeGate = useNightlink((s) => s.completeAgeGate);
+  const setSkipIntro = useNightlink((s) => s.setSkipIntro);
+  const markIntroComplete = useNightlink((s) => s.markIntroComplete);
+  const introComplete = useNightlink((s) => s.introComplete);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -185,6 +189,23 @@ export function DemoDirector() {
         {guidedStep === null ? "START 3-MINUTE DEMO" : "NEXT"}
         <ChevronRight className="h-3.5 w-3.5" />
       </Button>
+
+      {!introComplete && (
+        <button
+          type="button"
+          data-testid="director-skip-intro"
+          onClick={() => {
+            setSkipIntro(true);
+            markIntroComplete();
+            useNightlink.setState({ ageVerified: true, showAgeGate: false });
+            router.push("/?demo=1");
+          }}
+          className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-2 text-[11px] font-medium text-amber-100 hover:bg-amber-500/20"
+        >
+          <SkipForward className="h-3.5 w-3.5" />
+          Skip Intro / Go straight inside
+        </button>
+      )}
 
       {guidedStep !== null && (
         <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5">

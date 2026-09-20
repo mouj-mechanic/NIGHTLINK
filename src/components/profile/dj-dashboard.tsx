@@ -53,6 +53,7 @@ export function DjDashboard() {
       name,
       djName,
       djAvatar: profile.avatar,
+      flyer: "/flyers/neon-athens.svg",
       city,
       country,
       flag: FLAGS[country] ?? "🌍",

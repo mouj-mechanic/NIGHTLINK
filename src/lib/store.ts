@@ -56,11 +56,17 @@ interface NightlinkState {
   matchCeremony: boolean;
   trackIndex: number;
   guidedHighlight: string | null;
+  introComplete: boolean;
+  skipIntro: boolean;
+  cinematicForcePhase: string | null;
 
   setHydrated: (v: boolean) => void;
   setDemoMode: (v: boolean) => void;
   setGuidedStep: (v: number | null) => void;
   setGuidedHighlight: (v: string | null) => void;
+  setSkipIntro: (v: boolean) => void;
+  markIntroComplete: () => void;
+  setCinematicForcePhase: (v: string | null) => void;
   setAgeVerified: (v: boolean) => void;
   resetAgeVerification: () => void;
   requestEnterClub: (clubId: string) => void;
@@ -170,11 +176,17 @@ export const useNightlink = create<NightlinkState>()(
       matchCeremony: false,
       trackIndex: 0,
       guidedHighlight: null,
+      introComplete: false,
+      skipIntro: false,
+      cinematicForcePhase: null,
 
       setHydrated: (v) => set({ hydrated: v }),
       setDemoMode: (v) => set({ demoMode: v }),
       setGuidedStep: (v) => set({ guidedStep: v }),
       setGuidedHighlight: (v) => set({ guidedHighlight: v }),
+      setSkipIntro: (v) => set({ skipIntro: v, introComplete: v ? true : get().introComplete }),
+      markIntroComplete: () => set({ introComplete: true }),
+      setCinematicForcePhase: (v) => set({ cinematicForcePhase: v }),
       setAgeVerified: (v) => set({ ageVerified: v }),
       resetAgeVerification: () =>
         set({ ageVerified: false, showAgeGate: false, pendingClubId: null }),
@@ -549,11 +561,13 @@ export const useNightlink = create<NightlinkState>()(
 
       createDjRoom: (room) => {
         const id = uid("club");
+        const flyerArt = room.flyer || "/flyers/neon-athens.svg";
         const club: Club = {
           id,
           name: room.name,
           djName: room.djName,
           djAvatar: room.djAvatar,
+          flyer: flyerArt,
           city: room.city,
           country: room.country,
           flag: room.flag,
@@ -569,7 +583,7 @@ export const useNightlink = create<NightlinkState>()(
           track: {
             title: room.trackTitle,
             artist: room.trackArtist,
-            artwork: `https://api.dicebear.com/9.x/shapes/svg?seed=${id}`,
+            artwork: flyerArt,
             progress: 5,
             durationSec: 300,
             source: room.musicSource,
@@ -837,6 +851,9 @@ export const useNightlink = create<NightlinkState>()(
             clubs: CLUBS.map((c) => ({ ...c })),
             trackIndex: 0,
             demoMode: true,
+            introComplete: false,
+            skipIntro: false,
+            cinematicForcePhase: null,
           });
           get().pushToast("Preset START · clean lobby");
           return;
@@ -852,6 +869,8 @@ export const useNightlink = create<NightlinkState>()(
             matchCeremony: false,
             showAgeGate: false,
             demoMode: true,
+            introComplete: true,
+            skipIntro: true,
           });
           get().pushToast("Preset SOCIAL · Maya ready");
           return;
@@ -864,6 +883,8 @@ export const useNightlink = create<NightlinkState>()(
             activeClubId: "neon-athens",
             matchCeremony: false,
             demoMode: true,
+            introComplete: true,
+            skipIntro: true,
           });
           get().pushToast("Preset TABLE · 2/4");
           return;
@@ -878,6 +899,8 @@ export const useNightlink = create<NightlinkState>()(
             activeClubId: "neon-athens",
             matchCeremony: false,
             demoMode: true,
+            introComplete: true,
+            skipIntro: true,
           });
           get().pushToast("Preset VIP · 3/10 Midnight Crew");
         }
@@ -917,6 +940,9 @@ export const useNightlink = create<NightlinkState>()(
           seatRequests: [],
           matchCeremony: false,
           trackIndex: 0,
+          introComplete: false,
+          skipIntro: false,
+          cinematicForcePhase: null,
         });
         get().pushToast("Demo reset — clean slate");
       },
@@ -947,6 +973,8 @@ export const useNightlink = create<NightlinkState>()(
         demoMode: s.demoMode,
         trackIndex: s.trackIndex,
         activeClubId: s.activeClubId,
+        introComplete: s.introComplete,
+        skipIntro: s.skipIntro,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);

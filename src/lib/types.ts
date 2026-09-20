@@ -31,6 +31,7 @@ export interface Club {
   name: string;
   djName: string;
   djAvatar: string;
+  flyer: string;
   city: string;
   country: string;
   flag: string;

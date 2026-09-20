@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="hall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0a24"/>
+      <stop offset="100%" stop-color="#050308"/>
+    </linearGradient>
+    <linearGradient id="light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5d0fe" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f5d0fe" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#hall)"/>
+  <polygon points="500,0 1100,0 1400,900 200,900" fill="#12081c"/>
+  <polygon points="620,0 980,0 1100,900 500,900" fill="#0c0614"/>
+  <!-- mirrors / panels -->
+  <rect x="540" y="120" width="70" height="280" rx="6" fill="#2a1838" opacity="0.7"/>
+  <rect x="990" y="120" width="70" height="280" rx="6" fill="#2a1838" opacity="0.7"/>
+  <!-- cloakroom rail -->
+  <rect x="560" y="480" width="480" height="8" rx="4" fill="#3b2a55"/>
+  <g fill="#1a1028">
+    <rect x="600" y="490" width="40" height="120" rx="4"/>
+    <rect x="680" y="490" width="44" height="130" rx="4"/>
+    <rect x="760" y="490" width="38" height="115" rx="4"/>
+    <rect x="840" y="490" width="42" height="125" rx="4"/>
+    <rect x="920" y="490" width="40" height="118" rx="4"/>
+  </g>
+  <!-- light spill -->
+  <polygon points="700,0 900,0 1050,900 550,900" fill="url(#light)"/>
+  <!-- floor gloss -->
+  <ellipse cx="800" cy="820" rx="280" ry="40" fill="#a78bfa" opacity="0.12"/>
+</svg>
