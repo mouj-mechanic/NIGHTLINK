@@ -1,40 +1,42 @@
 /**
  * Capture cinematic + social journey screenshots for the investor demo.
- * Expects production server at http://127.0.0.1:43128
  */
 const puppeteer = require("puppeteer-core");
 const path = require("path");
 const fs = require("fs");
 
 const OUT = "/cursor/stores/bc-cb52aff7-0974-4b63-a7cb-7290aa9de447/media";
-const BASE = process.env.NIGHTLINK_BASE || "http://127.0.0.1:43128";
+const BASE = process.env.NIGHTLINK_BASE || "http://127.0.0.1:43129";
 
 async function shot(page, name) {
   const file = path.join(OUT, name);
   await page.screenshot({ path: file, fullPage: false });
-  console.log("saved", file);
+  console.log("saved", file, fs.statSync(file).size);
 }
 
-async function clearState(page) {
-  await page.goto(BASE + "/?demo=1", { waitUntil: "networkidle2", timeout: 90000 });
-  await page.evaluate(() => {
-    localStorage.clear();
-    sessionStorage.clear();
+async function wait(ms) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+async function clickTestId(page, testId) {
+  await page.waitForSelector(`[data-testid="${testId}"]`, {
+    visible: true,
+    timeout: 20000,
   });
-  await page.reload({ waitUntil: "networkidle2", timeout: 90000 });
-  await new Promise((r) => setTimeout(r, 900));
+  await page.click(`[data-testid="${testId}"]`);
+  return true;
 }
 
-async function clickText(page, text, exact = false) {
-  const buttons = await page.$$("button, a");
-  for (const b of buttons) {
-    const t = await page.evaluate((el) => (el.textContent || "").trim(), b);
-    if (exact ? t === text : t.includes(text)) {
-      await b.click();
-      return true;
-    }
-  }
-  return false;
+async function clickText(page, text) {
+  return page.evaluate((needle) => {
+    const els = [...document.querySelectorAll("button, a, [role='button']")];
+    const el = els.find((b) =>
+      (b.textContent || "").replace(/\s+/g, " ").includes(needle)
+    );
+    if (!el) return false;
+    el.click();
+    return true;
+  }, text);
 }
 
 (async () => {
@@ -47,107 +49,88 @@ async function clickText(page, text, exact = false) {
   });
   const page = await browser.newPage();
 
-  await clearState(page);
+  // Fresh visit — clear storage then wait for cinematic after hydrate
+  await page.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 90000 });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.reload({ waitUntil: "networkidle2", timeout: 90000 });
+  await page.waitForSelector('[data-testid="cinematic-enter"]', {
+    visible: true,
+    timeout: 25000,
+  });
+  await wait(600);
   await shot(page, "nightlink-exterior.png");
 
-  await clickText(page, "Approach the entrance");
-  await new Promise((r) => setTimeout(r, 2000));
+  await clickTestId(page, "cinematic-enter");
+  await page.waitForSelector('[data-testid="cinematic-id-check"]', {
+    visible: true,
+    timeout: 15000,
+  });
+  await wait(400);
   await shot(page, "nightlink-id-check.png");
 
-  await clickText(page, "Demo verification");
-  await new Promise((r) => setTimeout(r, 1800));
-  // verified flash is short — force doors via store if needed
-  await page.evaluate(() => {
-    // @ts-ignore
-    const w = window;
-  });
-  await new Promise((r) => setTimeout(r, 800));
-  // Doors phase ~2.2s after verified
+  await clickTestId(page, "cinematic-demo-verify");
+  // verifying 1.4s + verified 1.6s → doors ~3.0s; capture mid doors ~3.6s
+  await wait(3600);
   await shot(page, "nightlink-doors-open.png");
 
-  await new Promise((r) => setTimeout(r, 2400));
+  await page.waitForSelector('[data-testid="cinematic-corridor"]', {
+    visible: true,
+    timeout: 10000,
+  }).catch(() => null);
+  await wait(800);
   await shot(page, "nightlink-corridor.png");
 
-  await new Promise((r) => setTimeout(r, 2800));
+  // Wait for intro to finish → party hall
+  await page.waitForFunction(
+    () => !document.querySelector('[data-testid="cinematic-corridor"]') &&
+      !document.querySelector('[data-testid="cinematic-enter"]'),
+    { timeout: 15000 }
+  ).catch(() => null);
+  await wait(800);
   await shot(page, "nightlink-party-hall.png");
 
-  // Social journey with skip intro / presets via localStorage seed
-  await page.evaluate(() => {
-    localStorage.setItem(
-      "nightlink-demo-v2",
-      JSON.stringify({
-        state: {
-          ageVerified: true,
-          introComplete: true,
-          skipIntro: true,
-          demoMode: true,
-          activeClubId: "neon-athens",
-        },
-        version: 0,
-      })
-    );
-  });
+  // --- Social journey ---
+  await page.goto(BASE + "/?demo=1", { waitUntil: "networkidle2", timeout: 90000 });
+  await wait(1000);
+  // Skip cinematic if present
+  await clickText(page, "Skip Intro");
+  await wait(400);
+  await clickText(page, "Skip Intro / Go straight inside");
+  await wait(500);
+
+  // VIP preset from director
+  console.log("vip", await clickText(page, "4 VIP"));
+  await wait(1500);
   await page.goto(BASE + "/club/neon-athens?demo=1", {
     waitUntil: "networkidle2",
     timeout: 90000,
   });
-  await new Promise((r) => setTimeout(r, 1500));
-  // Ensure age + intro via director-like evaluate
-  await page.evaluate(() => {
-    // Trigger Zustand if available by dispatching demo actions via UI
-  });
-  // Click verify if still gated
+  await wait(2000);
   await clickText(page, "Demo verification");
-  await new Promise((r) => setTimeout(r, 2500));
+  await wait(2000);
   await shot(page, "nightlink-club-updated.png");
 
-  // Open Maya
-  const crowdBtns = await page.$$("button");
-  for (const b of crowdBtns) {
-    const t = await page.evaluate((el) => el.textContent || "", b);
-    if (t.includes("MayaWave")) {
-      await b.click();
-      break;
-    }
-  }
-  await new Promise((r) => setTimeout(r, 900));
+  console.log("maya", await clickText(page, "MayaWave"));
+  await wait(1000);
   await shot(page, "nightlink-maya-realistic.png");
 
-  // Use Demo Director presets via page evaluate on store — click VIP+gift quick link
-  for (const b of await page.$$("button")) {
-    const t = await page.evaluate((el) => el.textContent || "", b);
-    if (t.includes("VIP+gift") || t.trim() === "VIP+gift") {
-      await b.click();
-      break;
-    }
-  }
-  await new Promise((r) => setTimeout(r, 2000));
+  // Re-apply VIP and shoot table/gift
+  console.log("vip2", await clickText(page, "4 VIP"));
+  await wait(1200);
+  await page.goto(BASE + "/club/neon-athens?demo=1", {
+    waitUntil: "networkidle2",
+    timeout: 90000,
+  });
+  await wait(2200);
   await shot(page, "nightlink-table-3-4.png");
   await shot(page, "nightlink-vip-table.png");
-  await shot(page, "nightlink-virtual-gift.png");
 
-  // If VIP didn't land, try table create path
-  const body = await page.evaluate(() => document.body.innerText);
-  if (!body.includes("Midnight") && !body.includes("VIP") && !body.includes("Champagne")) {
-    // Manual poke path
-    for (const b of await page.$$("button")) {
-      const t = await page.evaluate((el) => el.textContent || "", b);
-      if (t.includes("Poke")) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise((r) => setTimeout(r, 2800));
-    for (const b of await page.$$("button")) {
-      const t = await page.evaluate((el) => el.textContent || "", b);
-      if (t.includes("Start a table") || t.includes("table")) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise((r) => setTimeout(r, 1500));
-    await shot(page, "nightlink-table-3-4.png");
-  }
+  await clickText(page, "Send Champagne");
+  await wait(1400);
+  await shot(page, "nightlink-virtual-gift.png");
 
   await browser.close();
   console.log("done");
