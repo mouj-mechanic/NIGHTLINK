@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { COUNTRY_LIVE, TOTAL_PARTYING } from "@/lib/mock-data";
 import { useNightlink } from "@/lib/store";
 import type { Club, MusicSource } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 function LiveBadge() {
   return (
