@@ -14,6 +14,7 @@ import {
   CinematicEntrance,
   type CinematicPhase,
 } from "@/components/cinematic/cinematic-entrance";
+import { SafeImage } from "@/components/shared/safe-image";
 
 function LiveBadge() {
   return (
@@ -40,8 +41,7 @@ function PosterCard({
       data-testid="poster-card"
     >
       <div className="relative aspect-[3/4] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <SafeImage
           src={club.flyer || club.track.artwork}
           alt=""
           className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
@@ -58,8 +58,7 @@ function PosterCard({
         </div>
         <div className="absolute inset-x-0 bottom-0 space-y-3 p-4">
           <div className="flex items-end gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <SafeImage
               src={club.djAvatar}
               alt=""
               className="h-14 w-14 rounded-full border-2 border-white/30 bg-muted object-cover"

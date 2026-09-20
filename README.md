@@ -2,11 +2,17 @@
 
 **Enter the room. Feel the crowd. Find your table.**
 
-NIGHTLINK is an 18+ virtual nightlife and social-presence **investor demo** — a polished mock of cinematic club arrival, live rooms, crowd presence, poke → chat → table social mechanics, VIP upgrade, birthday gifts, DJ mode, and events. No production backend. No Spotify/Deezer streaming or copyrighted rebroadcast; audio is synthetic Web Audio (or optional local file upload).
+NIGHTLINK is an 18+ virtual nightlife platform demo: cinematic club arrival, live rooms with DJ energy, crowd presence, and a social chain from poke → chat → shared table → VIP → gifts. It is built as an investor-facing mock — polished enough to walk in three minutes, with no production backend.
 
-## Run locally
+Music source badges mean connected-platform / now-playing metadata only. Audio is synthetic Web Audio (or an optional local file). Age checks, payments, and multiplayer are simulated for the demo.
+
+## Investor Demo
+
+Clone and run from the official repo:
 
 ```bash
+git clone https://github.com/mouj-mechanic/NIGHTLINK.git
+cd NIGHTLINK
 npm install
 npm run dev
 ```
@@ -14,60 +20,73 @@ npm run dev
 Open [http://127.0.0.1:43127](http://127.0.0.1:43127).
 
 ```bash
-npm run build   # production build
-npm start       # serve the build on port 43127
+npm run build
+npm start
 ```
 
-## Investor demo
+### Demo Director
 
-1. Open with demo mode: [http://127.0.0.1:43127/?demo=1](http://127.0.0.1:43127/?demo=1)  
-   Or click **Investor Demo** in the header.
-2. **Cinematic entrance** (first visit / after reset):
-   - Land outside the NIGHTLINK exterior → approach → ID check → doors open → corridor → party poster hall
-   - Use **Skip Intro** on the cinematic overlay, or **Skip Intro / Go straight inside** in Demo Director
-3. Use the **Demo Director** panel (bottom-right):
-   - **START 3-MINUTE DEMO** / **NEXT** walks lobby → Neon Athens → age gate → crowd → MayaWave → poke → poke-back → chat → table → invite third → VIP → gift
-   - Presets: **START** (clean lobby + intro), **SOCIAL**, **TABLE**, **VIP** (skip intro, jump into the social journey)
-   - Or fire individual director actions (receive poke, create table, upgrade VIP, increase audience, etc.)
-4. Flagship path without the director:
-   - Complete (or skip) the cinematic entrance → enter **Neon Athens**
-   - Open **MayaWave** in the crowd (87% compatibility) → **Poke**
-   - Wait ~2s for auto poke-back → **Chat** → **Start a table**
-   - Invite a third seat → **Upgrade VIP €4.99** (demo purchase)
-   - Events → **Emma's 30th Birthday** → send **Champagne**
-   - **Become a DJ** → Start Demo Room → room appears on the lobby
+- Enable demo mode: [http://127.0.0.1:43127/?demo=1](http://127.0.0.1:43127/?demo=1)
+- Jump to a preset (skips cinematic intro except `start`):
+  - [/?demo=1&preset=start](http://127.0.0.1:43127/?demo=1&preset=start)
+  - [/?demo=1&preset=social](http://127.0.0.1:43127/?demo=1&preset=social)
+  - [/?demo=1&preset=table](http://127.0.0.1:43127/?demo=1&preset=table)
+  - [/?demo=1&preset=vip](http://127.0.0.1:43127/?demo=1&preset=vip)
 
-State persists in `localStorage` under `nightlink-demo-v2` (age verification, intro complete, conversations, tables, DJ rooms, privacy, gifts). Use **RESET EVERYTHING** in Demo Director or Profile → Demo settings to clear.
+The Demo Director panel (bottom-right) offers **START 3-MINUTE DEMO**, presets 1–4, **Skip Intro / Go straight inside**, **RESET EVERYTHING**, and granular actions.
+
+### Cinematic journey
+
+Exterior → Approach → ID check (EU Age Proof / ID provider previews + Demo verification) → doors open → corridor / vestiaire → party poster hall. Use **Skip Intro** anytime.
+
+### Social journey (flagship)
+
+Enter **Neon Athens** → open **MayaWave** (87% music match) → **Poke** → auto poke-back → chat → start a table → invite **AlexBass** → upgrade **VIP Midnight Crew** → send **Champagne**.
+
+State persists in `localStorage` under `nightlink-demo-v2`. Reset from Demo Director or Profile → Demo settings.
+
+## Core Concept
+
+Consent-forward nightlife social: presence in a live room, mutual poke to unlock chat, then an opt-in shared table — never a cold DM blast. Camera defaults off; VIP and gifts are optional upgrades inside an already mutual moment.
+
+## Vision
+
+> NIGHTLINK is where the night becomes a room you can actually share — music first, people second, tables when the vibe is right.
+
+Possible extensions: real age-proof providers, licensed listening integrations, private events, and moderated multiplayer presence. This repo stays a front-end investor demo.
+
+## Demo limitations
+
+- Age verification, payments (VIP €4.99), and gifts are mocked
+- Spotify / Deezer / YouTube badges are connection metadata — not catalog rebroadcast
+- No real multiplayer, accounts, or video streaming backend
+- Crowd energy, listener drift, and MayaWave poke-back are local simulations
+
+## Assets
+
+All demo art is stored locally under `public/`:
+
+| Path | Contents | Source |
+|------|----------|--------|
+| `public/cinematic/` | Exterior, guards, corridor | Original NIGHTLINK vector scenes |
+| `public/avatars/` | DJ + attendee portraits | Demo-safe stylized SVGs (local only) |
+| `public/flyers/` | Room posters | DiceBear Shapes (CC0 1.0), stored locally |
+
+No celebrity likenesses, no GTA / game IP, no third-party brand logos as product marks.
 
 ## Stack
 
 Next.js App Router · TypeScript · Tailwind CSS · shadcn/ui · Lucide · Framer Motion · Zustand (persist)
 
-## Assets
+## Deployment (Vercel)
 
-Demo portraits, flyers, and cinematic scenes live under `public/avatars`, `public/flyers`, and `public/cinematic`. Original NIGHTLINK branding only — no celebrity likenesses, no third-party game IP.
+1. Import `mouj-mechanic/NIGHTLINK` in Vercel
+2. Framework preset: Next.js — build `npm run build`, output default
+3. No env secrets required for the demo
+4. Optional: set `NEXT_PUBLIC_APP_URL` to the deployment URL
 
-## Mock limitations
+`localStorage` is client-only (SSR-safe). Prefer production `npm run build && npm start` for investor walkthroughs.
 
-- Age verification is a demo gate (EU Age Proof / ID provider are UI previews)
-- Music source badges mean **connected platform / integration preview / now playing metadata** only — not legal rebroadcast of third-party catalogs
-- No real video streaming, payments, or backend accounts
-- Crowd energy, listener drift, and MayaWave poke-back are simulated locally
+## License
 
-## Publish to GitHub
-
-This workspace may not have a user GitHub remote yet. After you create or connect a repository:
-
-```bash
-git checkout cursor/nightlink-investor-demo-fc80
-git push -u origin cursor/nightlink-investor-demo-fc80
-```
-
-If you need to add a remote first:
-
-```bash
-git remote add origin git@github.com:<YOUR_USER>/<YOUR_REPO>.git
-git push -u origin cursor/nightlink-investor-demo-fc80
-```
-
-Do not invent a GitHub URL — replace `<YOUR_USER>/<YOUR_REPO>` with your real repository.
+Private investor demo — all rights reserved unless otherwise noted for CC0 flyer shapes.

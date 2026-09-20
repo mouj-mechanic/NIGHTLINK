@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { ClubAgeGate } from "@/components/age-gate/age-gate";
 import { SpatialTablePanel } from "@/components/club/spatial-table";
 import { MatchCeremony } from "@/components/club/match-ceremony";
+import { SafeImage } from "@/components/shared/safe-image";
 import {
   AmbientTicker,
   FloatingReactions,
@@ -345,8 +346,7 @@ function DjStage({ club }: { club: Club }) {
               transition={{ duration: 10, repeat: Infinity }}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SafeImage
                 src={club.djAvatar}
                 alt=""
                 className="h-24 w-24 rounded-full border-2 border-white/30 shadow-xl"

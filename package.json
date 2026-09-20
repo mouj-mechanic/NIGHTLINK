@@ -2,6 +2,7 @@
   "name": "nightlink",
   "version": "0.1.0",
   "private": true,
+  "description": "NIGHTLINK — 18+ virtual nightlife investor demo (cinematic entrance, live clubs, poke→table→VIP)",
   "scripts": {
     "dev": "next dev --port 43127",
     "build": "next build",

@@ -976,8 +976,27 @@ export const useNightlink = create<NightlinkState>()(
         introComplete: s.introComplete,
         skipIntro: s.skipIntro,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch {
+            /* noop */
+          }
+        }
+        if (state) {
+          // Migrate older persisted clubs that lack flyer paths
+          state.clubs = state.clubs.map((c) => ({
+            ...c,
+            flyer: c.flyer || c.track?.artwork || `/flyers/${c.id}.svg`,
+            track: {
+              ...c.track,
+              artwork:
+                c.track?.artwork || c.flyer || `/flyers/${c.id}.svg`,
+            },
+          }));
+          state.setHydrated(true);
+        }
       },
     }
   )

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -93,6 +93,25 @@ export function DemoDirector() {
   useEffect(() => {
     if (searchParams.get("demo") === "1") setDemoMode(true);
   }, [searchParams, setDemoMode]);
+
+  const appliedPreset = useRef<string | null>(null);
+  useEffect(() => {
+    if (searchParams.get("demo") !== "1") return;
+    const preset = searchParams.get("preset");
+    if (
+      preset !== "start" &&
+      preset !== "social" &&
+      preset !== "table" &&
+      preset !== "vip"
+    ) {
+      return;
+    }
+    if (appliedPreset.current === preset) return;
+    appliedPreset.current = preset;
+    applyPreset(preset);
+    if (preset === "start") router.replace("/?demo=1");
+    else router.replace("/club/neon-athens?demo=1");
+  }, [searchParams, applyPreset, router]);
 
   const hideForGate = !ageVerified && pathname.startsWith("/club/");
   if ((!demoMode && searchParams.get("demo") !== "1") || hideForGate) return null;
