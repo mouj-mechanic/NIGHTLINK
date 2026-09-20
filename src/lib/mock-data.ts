@@ -360,9 +360,10 @@ export const NAMED_ATTENDEES: Attendee[] = [
     country: "Germany",
     flag: "🇩🇪",
     availability: "Open to talk",
-    genres: ["Techno", "Minimal"],
-    compatibility: 74,
+    genres: ["Techno", "Minimal", "Melodic Techno"],
+    compatibility: 92,
     gear: "Sennheiser HD 660S",
+    mutualInterests: ["Techno", "DJ KOSMOS", "Late nights"],
   }),
   makeAttendee({
     id: "sofia-night",
@@ -372,7 +373,7 @@ export const NAMED_ATTENDEES: Attendee[] = [
     flag: "🇧🇬",
     availability: "Just listening",
     genres: ["Techno", "Industrial"],
-    compatibility: 68,
+    compatibility: 81,
   }),
   makeAttendee({
     id: "rico-808",
@@ -392,8 +393,8 @@ export const NAMED_ATTENDEES: Attendee[] = [
     country: "Spain",
     flag: "🇪🇸",
     availability: "With a table",
-    genres: ["Melodic House"],
-    compatibility: 79,
+    genres: ["Melodic House", "Melodic Techno"],
+    compatibility: 74,
     tableId: "open-table-1",
   }),
   makeAttendee({
@@ -601,7 +602,32 @@ export const EVENTS: NightEvent[] = [
     date: "Wed · 20:00",
     price: "Free",
     image: art("event-sport", 0x00d68f),
-    description: "Beyond nightlife — one social layer for any live moment.",
+    description:
+      "Powered by NIGHTLINK social rooms — one layer for any live moment.",
+  },
+  {
+    id: "e7",
+    title: "Tomorrowland Virtual Stage",
+    category: "Festivals",
+    city: "Boom",
+    country: "Belgium",
+    flag: "🇧🇪",
+    date: "Summer · Preview",
+    price: 12.99,
+    image: art("event-tomorrow", 0x7c3aed),
+    description: "Powered by NIGHTLINK social rooms · festival tables.",
+  },
+  {
+    id: "e8",
+    title: "Arena Concert — Hybrid Night",
+    category: "Concerts",
+    city: "Berlin",
+    country: "Germany",
+    flag: "🇩🇪",
+    date: "Fall · Preview",
+    price: 9.99,
+    image: art("event-arena", 0x2563eb),
+    description: "Powered by NIGHTLINK social rooms · concert presence.",
   },
 ];
 
@@ -614,3 +640,66 @@ export const GIFT_CATALOG = [
 ];
 
 export const TOTAL_PARTYING = 12482;
+
+export const DEMO_TRACKS = [
+  {
+    title: "Midnight Signals",
+    artist: "NOVA",
+    artwork: art("midnight-signals", 0x6b2cff),
+    durationSec: 384,
+    source: "Spotify" as const,
+  },
+  {
+    title: "Aegean Drift",
+    artist: "KOSMOS",
+    artwork: art("aegean-drift", 0x3b82f6),
+    durationSec: 312,
+    source: "Spotify" as const,
+  },
+  {
+    title: "Neon Horizon",
+    artist: "Lumen Field",
+    artwork: art("neon-horizon", 0xec4899),
+    durationSec: 278,
+    source: "Own" as const,
+  },
+];
+
+export const TABLE_INVITEES = [
+  { id: "alex-bass", compatibility: 92 },
+  { id: "luna-beat", compatibility: 74 },
+  { id: "sofia-night", compatibility: 81 },
+];
+
+export const CLUB_PARTY_FROM = [
+  { country: "Greece", flag: "🇬🇷", pct: 28 },
+  { country: "Germany", flag: "🇩🇪", pct: 18 },
+  { country: "France", flag: "🇫🇷", pct: 14 },
+  { country: "UK", flag: "🇬🇧", pct: 12 },
+  { country: "Brazil", flag: "🇧🇷", pct: 9 },
+  { country: "Other", flag: "🌍", pct: 19 },
+];
+
+export const MAYA_CHAT_OPENERS = [
+  "This DJ is insane 🔥",
+  "First time at Neon Athens?",
+];
+
+export const MAYA_CHAT_REPLIES = [
+  "Same — the bassline just hit different with ANC on.",
+  "Want to grab a table while KOSMOS is still peaking?",
+  "I can still hear the room from a private table — start one?",
+  "Love that energy. Table for two?",
+];
+
+export const AMBIENT_EVENTS = [
+  "LunaBeat joined the crowd",
+  "AlexBass reacted 🔥",
+  "SofiaNight is just listening",
+  "Someone poked across the room",
+  "Table 7 went VIP",
+  "Rico808 opened a seat",
+  "327 → peaking",
+  "New listeners from Berlin",
+];
+

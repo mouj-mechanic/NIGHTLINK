@@ -35,7 +35,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { OPEN_TABLES_META } from "@/lib/mock-data";
+import { OPEN_TABLES_META, DEMO_TRACKS } from "@/lib/mock-data";
 import { useNightlink } from "@/lib/store";
 import {
   setDemoVolume,
@@ -46,6 +46,16 @@ import {
 import type { Attendee, Club } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ClubAgeGate } from "@/components/age-gate/age-gate";
+import { SpatialTablePanel } from "@/components/club/spatial-table";
+import { MatchCeremony } from "@/components/club/match-ceremony";
+import {
+  AmbientTicker,
+  FloatingReactions,
+  LiveElapsed,
+  MiniVisualizer,
+  PartyFromStrip,
+} from "@/components/club/live-atmosphere";
+import { MusicCompatibility } from "@/components/shared/music-compatibility";
 
 export function ClubRoom({ clubId }: { clubId: string }) {
   const router = useRouter();
@@ -91,6 +101,14 @@ export function ClubRoom({ clubId }: { clubId: string }) {
   useEffect(() => {
     setDemoVolume(muted ? 0 : volume);
   }, [muted, volume]);
+
+  useEffect(() => {
+    if (!ageVerified) return;
+    const id = setInterval(() => {
+      useNightlink.getState().driftListeners();
+    }, 4500);
+    return () => clearInterval(id);
+  }, [ageVerified]);
 
   const crowd = useMemo(() => {
     if (!crowdByClub[clubId] && ageVerified) ensureCrowd(clubId);
@@ -186,7 +204,20 @@ export function ClubRoom({ clubId }: { clubId: string }) {
 
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-5">
-          <DjStage club={club} />
+          <div className="relative">
+            <DjStage club={club} />
+            <FloatingReactions />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <AmbientTicker />
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <MiniVisualizer />
+              <LiveElapsed startMinutes={club.sessionMinutes} />
+              <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-violet-200">
+                DJ PRO
+              </span>
+            </div>
+          </div>
           <TrackBar
             club={club}
             muted={muted}
@@ -201,6 +232,7 @@ export function ClubRoom({ clubId }: { clubId: string }) {
             }}
           />
           <HeadphoneRec text={club.headphoneRec} />
+          <PartyFromStrip />
           <CrowdGrid
             crowd={crowd}
             onSelect={(id) => selectProfile(id)}
@@ -209,11 +241,14 @@ export function ClubRoom({ clubId }: { clubId: string }) {
         </div>
 
         <div className="space-y-5">
-          {myTable ? <SocialTablePanel /> : (
+          {myTable ? (
+            <SpatialTablePanel />
+          ) : (
             <div className="rounded-2xl border border-dashed border-white/15 p-6 text-center">
               <p className="font-display text-lg text-white">No table yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Match with someone in the crowd to start a private table.
+                Match with MayaWave in the crowd to start a private table —
+                music never stops.
               </p>
             </div>
           )}
@@ -229,6 +264,8 @@ export function ClubRoom({ clubId }: { clubId: string }) {
           />
         )}
       </AnimatePresence>
+
+      <MatchCeremony />
 
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="border-white/10 bg-[#12101a] sm:max-w-md">
@@ -356,13 +393,40 @@ function TrackBar({
   onVolume: (v: number) => void;
   onUpload: (f: File) => void;
 }) {
+  const nextTrack = useNightlink((s) => s.nextTrack);
+  const trackIndex = useNightlink((s) => s.trackIndex);
   const [progress, setProgress] = useState(club.track.progress);
+  const [upNext, setUpNext] = useState(false);
+
+  useEffect(() => {
+    setProgress(club.track.progress);
+    setUpNext(false);
+  }, [club.track.title, club.track.progress]);
+
   useEffect(() => {
     const id = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 0 : p + 0.4));
+      setProgress((p) => {
+        if (p >= 100) {
+          setUpNext(true);
+          setTimeout(() => {
+            nextTrack();
+            setUpNext(false);
+          }, 1200);
+          return 0;
+        }
+        return p + 0.35;
+      });
     }, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [nextTrack]);
+
+  const remaining = Math.max(
+    0,
+    Math.round(((100 - progress) / 100) * club.track.durationSec)
+  );
+  const rm = Math.floor(remaining / 60);
+  const rs = remaining % 60;
+  const upcoming = DEMO_TRACKS[(trackIndex + 1) % DEMO_TRACKS.length];
 
   return (
     <div className="rounded-2xl border border-white/10 bg-card/50 p-4">
@@ -374,19 +438,22 @@ function TrackBar({
           className="h-16 w-16 rounded-lg object-cover"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-white">{club.track.title}</p>
+          <p className="truncate font-medium text-white">
+            {upNext ? "UP NEXT…" : club.track.title}
+          </p>
           <p className="truncate text-sm text-muted-foreground">
-            {club.track.artist}
+            {upNext ? upcoming.title : club.track.artist}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-[10px]">
               {club.musicSource} · Connected platform
             </Badge>
             <span className="text-[10px] text-muted-foreground">
-              Integration preview · demo audio (Web Audio)
+              −{rm}:{rs.toString().padStart(2, "0")} · demo audio
             </span>
           </div>
         </div>
+        <MiniVisualizer />
       </div>
       <Progress value={progress} className="mt-3 h-1.5" />
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -403,6 +470,14 @@ function TrackBar({
           step={1}
           className="w-32"
         />
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/15"
+          onClick={() => nextTrack()}
+        >
+          Next track
+        </Button>
         <label className="cursor-pointer text-xs text-violet-300 hover:underline">
           Upload local audio
           <input
@@ -587,13 +662,20 @@ function ProfileModal({
                 {a.flag}
               </p>
               <p className="mt-1 text-sm text-violet-300">
-                {a.compatibility}% music compatibility
+                Looking to connect in the room
               </p>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
+        </div>
+
+        <div className="mt-4">
+          <MusicCompatibility
+            percent={a.compatibility}
+            shared={a.mutualInterests}
+          />
         </div>
 
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -630,7 +712,7 @@ function ProfileModal({
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          {!conv?.pokeSent ? (
+          {!conv?.pokeSent || conv.pokePhase === "idle" ? (
             <Button
               className="bg-gradient-to-r from-violet-600 to-pink-600 text-white"
               onClick={() => sendPoke(a.id)}
@@ -638,9 +720,10 @@ function ProfileModal({
               <Sparkles className="h-4 w-4" />
               Poke
             </Button>
-          ) : !conv.pokeBack ? (
-            <Button disabled variant="secondary">
-              Poke sent…
+          ) : conv.pokePhase === "waiting" || (conv.pokeSent && !conv.pokeBack) ? (
+            <Button disabled variant="secondary" className="gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+              WAITING…
             </Button>
           ) : (
             <>
@@ -655,8 +738,7 @@ function ProfileModal({
                 Chat
               </Button>
               <Button
-                variant="outline"
-                className="border-white/15"
+                className="bg-gradient-to-r from-pink-600 to-violet-600 text-white"
                 onClick={() => {
                   createTable(a.id);
                   onClose();
@@ -721,8 +803,7 @@ function ChatPanel({ userId }: { userId: string }) {
         <div className="flex gap-1">
           <Button
             size="sm"
-            variant="outline"
-            className="border-white/15"
+            className="bg-gradient-to-r from-pink-600 to-violet-600 text-white"
             onClick={() => createTable(userId)}
           >
             Start a table
@@ -768,246 +849,6 @@ function ChatPanel({ userId }: { userId: string }) {
           <Send className="h-4 w-4" />
         </Button>
       </form>
-    </div>
-  );
-}
-
-function SocialTablePanel() {
-  const myTable = useNightlink((s) => s.myTable)!;
-  const getAttendee = useNightlink((s) => s.getAttendee);
-  const inviteToTable = useNightlink((s) => s.inviteToTable);
-  const upgradeVip = useNightlink((s) => s.upgradeVip);
-  const leaveTable = useNightlink((s) => s.leaveTable);
-  const setTableCamera = useNightlink((s) => s.setTableCamera);
-  const setTableMuted = useNightlink((s) => s.setTableMuted);
-  const setDjVolume = useNightlink((s) => s.setDjVolume);
-  const sendTableChat = useNightlink((s) => s.sendTableChat);
-  const [text, setText] = useState("");
-  const [checkout, setCheckout] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const occupied = myTable.seats.filter((s) => s.userId).length;
-
-  const toggleCam = async () => {
-    if (myTable.myCameraOn) {
-      const stream = videoRef.current?.srcObject as MediaStream | null;
-      stream?.getTracks().forEach((t) => t.stop());
-      if (videoRef.current) videoRef.current.srcObject = null;
-      setTableCamera(false);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setTableCamera(true);
-    } catch {
-      setTableCamera(true);
-      useNightlink.getState().pushToast("Camera unavailable — mock feed on");
-    }
-  };
-
-  return (
-    <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-b from-violet-950/40 to-card/60 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-display text-lg text-white">
-            TABLE {myTable.number} · {occupied}/{myTable.maxSeats}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {myTable.isVip ? "VIP · video seats" : "Private · still hearing the DJ"}
-          </p>
-        </div>
-        <Badge className={myTable.isVip ? "bg-amber-500/20 text-amber-200" : ""}>
-          {myTable.visibility}
-        </Badge>
-      </div>
-
-      <div
-        className={cn(
-          "mt-4 grid gap-2",
-          myTable.isVip ? "grid-cols-5" : "grid-cols-4"
-        )}
-      >
-        {myTable.seats.map((seat, i) => {
-          const person =
-            seat.userId === "me"
-              ? { pseudo: "You", avatar: useNightlink.getState().profile.avatar }
-              : seat.userId
-                ? getAttendee(seat.userId)
-                : null;
-          return (
-            <div
-              key={i}
-              className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40"
-            >
-              {seat.userId === "me" && myTable.myCameraOn ? (
-                <video
-                  ref={videoRef}
-                  muted
-                  playsInline
-                  className="h-full w-full object-cover"
-                />
-              ) : person ? (
-                <div className="flex h-full flex-col items-center justify-center gap-1 p-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={person.avatar}
-                    alt=""
-                    className="h-10 w-10 rounded-full"
-                  />
-                  <p className="truncate text-[10px] text-white">
-                    {person.pseudo}
-                  </p>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground hover:bg-white/5"
-                  onClick={() => setInviteOpen(true)}
-                >
-                  <UserPlus className="h-4 w-4" />
-                  <span className="text-[9px]">Invite</span>
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="border-white/15" onClick={toggleCam}>
-          {myTable.myCameraOn ? (
-            <CameraOff className="h-3.5 w-3.5" />
-          ) : (
-            <Camera className="h-3.5 w-3.5" />
-          )}
-          Cam
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="border-white/15"
-          onClick={() => setTableMuted(!myTable.myMuted)}
-        >
-          {myTable.myMuted ? (
-            <MicOff className="h-3.5 w-3.5" />
-          ) : (
-            <Mic className="h-3.5 w-3.5" />
-          )}
-          Mic
-        </Button>
-        {!myTable.isVip && (
-          <Button
-            size="sm"
-            className="bg-amber-500/90 text-black"
-            onClick={() => setCheckout(true)}
-          >
-            <Crown className="h-3.5 w-3.5" />
-            Upgrade VIP €4.99
-          </Button>
-        )}
-        <Button size="sm" variant="ghost" onClick={leaveTable}>
-          Leave table
-        </Button>
-      </div>
-
-      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-        <Volume2 className="h-3.5 w-3.5" />
-        DJ volume
-        <Slider
-          value={[myTable.djVolume]}
-          onValueChange={(v) => {
-            const val = Array.isArray(v) ? v[0] : v;
-            setDjVolume(val ?? 70);
-          }}
-          max={100}
-          className="w-28"
-        />
-      </div>
-
-      <div className="mt-3 max-h-28 space-y-1 overflow-y-auto rounded-lg bg-black/30 p-2 text-xs">
-        {myTable.chat.map((m) => (
-          <p key={m.id} className={m.from === "me" ? "text-violet-200" : "text-white/80"}>
-            <span className="text-muted-foreground">
-              {m.from === "me" ? "You" : "Table"}:{" "}
-            </span>
-            {m.text}
-          </p>
-        ))}
-      </div>
-      <form
-        className="mt-2 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!text.trim()) return;
-          sendTableChat(text.trim());
-          setText("");
-        }}
-      >
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Table chat…"
-          className="h-8 border-white/10 bg-white/5 text-xs"
-        />
-        <Button type="submit" size="icon" className="size-8 bg-violet-600">
-          <Send className="h-3.5 w-3.5" />
-        </Button>
-      </form>
-
-      <Dialog open={checkout} onOpenChange={setCheckout}>
-        <DialogContent className="border-white/10 bg-[#12101a]">
-          <DialogHeader>
-            <DialogTitle>VIP Table upgrade</DialogTitle>
-            <DialogDescription>
-              Demo checkout only — no real payment. Unlocks 10 seats + mock camera
-              feeds.
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-2xl font-display text-white">€4.99</p>
-          <Button
-            className="w-full bg-amber-500 text-black"
-            onClick={() => {
-              upgradeVip();
-              setCheckout(false);
-            }}
-          >
-            DEMO PURCHASE
-          </Button>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="border-white/10 bg-[#12101a]">
-          <DialogHeader>
-            <DialogTitle>Invite someone</DialogTitle>
-            <DialogDescription>Pull a friend into your table.</DialogDescription>
-          </DialogHeader>
-          {["alex-bass", "sofia-night", "luna-beat", "rico-808"].map((id) => {
-            const p = getAttendee(id);
-            if (!p) return null;
-            return (
-              <Button
-                key={id}
-                variant="outline"
-                className="w-full justify-start border-white/10"
-                onClick={() => {
-                  inviteToTable(id);
-                  setInviteOpen(false);
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.avatar} alt="" className="h-6 w-6 rounded-full" />
-                {p.pseudo}
-              </Button>
-            );
-          })}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

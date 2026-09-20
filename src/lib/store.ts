@@ -6,7 +6,10 @@ import {
   BIRTHDAY,
   CLUBS,
   CURRENT_USER,
+  DEMO_TRACKS,
   generateCrowd,
+  MAYA_CHAT_OPENERS,
+  MAYA_CHAT_REPLIES,
   MAYA_WAVE,
 } from "./mock-data";
 import type {
@@ -18,6 +21,7 @@ import type {
   GiftType,
   NotificationItem,
   SocialTable,
+  TableSeat,
   UserProfile,
 } from "./types";
 
@@ -49,10 +53,14 @@ interface NightlinkState {
   toastQueue: string[];
   giftAnimation: GiftType | null;
   seatRequests: string[];
+  matchCeremony: boolean;
+  trackIndex: number;
+  guidedHighlight: string | null;
 
   setHydrated: (v: boolean) => void;
   setDemoMode: (v: boolean) => void;
   setGuidedStep: (v: number | null) => void;
+  setGuidedHighlight: (v: string | null) => void;
   setAgeVerified: (v: boolean) => void;
   resetAgeVerification: () => void;
   requestEnterClub: (clubId: string) => void;
@@ -62,11 +70,12 @@ interface NightlinkState {
   getCrowd: (clubId: string) => Attendee[];
   ensureCrowd: (clubId: string) => void;
   selectProfile: (id: string | null) => void;
-  sendPoke: (userId: string) => void;
-  receivePokeFromMaya: () => void;
+  sendPoke: (userId: string, opts?: { instant?: boolean }) => void;
+  receivePokeFromMaya: (opts?: { instant?: boolean }) => void;
   pokeBack: (userId: string) => void;
   unlockChat: (userId: string) => void;
   openChat: (userId: string | null) => void;
+  seedMayaChat: () => void;
   sendMessage: (userId: string, text: string) => void;
   simulateReply: (userId: string, text: string) => void;
   createTable: (withUserId: string) => void;
@@ -76,7 +85,12 @@ interface NightlinkState {
   setTableCamera: (on: boolean) => void;
   setTableMuted: (muted: boolean) => void;
   setDjVolume: (v: number) => void;
+  setTableVoices: (v: number) => void;
+  setMayaCamera: (on: boolean) => void;
+  askMayaCamera: () => void;
   sendTableChat: (text: string) => void;
+  addTableReaction: (emoji: string) => void;
+  sendTableGift: (gift: GiftType, toUserId: string) => void;
   requestSeat: (tableId: string) => void;
   toggleFavorite: (clubId: string) => void;
   createDjRoom: (room: Omit<Club, "id" | "isLive" | "listeners" | "track" | "sessionMinutes" | "isUserCreated"> & { trackTitle: string; trackArtist: string }) => string;
@@ -86,6 +100,8 @@ interface NightlinkState {
   sendGift: (gift: GiftType) => void;
   writeWall: (text: string) => void;
   increaseAudience: (n?: number) => void;
+  nextTrack: () => void;
+  driftListeners: () => void;
   addNotification: (text: string) => void;
   markNotificationsRead: () => void;
   blockUser: (userId: string) => void;
@@ -93,7 +109,10 @@ interface NightlinkState {
   pushToast: (text: string) => void;
   clearToast: () => void;
   clearGiftAnimation: () => void;
+  dismissMatchCeremony: () => void;
   directorAction: (action: string) => void;
+  applyPreset: (preset: "start" | "social" | "table" | "vip") => void;
+  resetEverything: () => void;
   getAttendee: (id: string) => Attendee | undefined;
 }
 
@@ -103,8 +122,17 @@ const defaultConv = (userId: string): Conversation => ({
   matched: false,
   pokeSent: false,
   pokeBack: false,
+  pokePhase: "idle",
   messages: [],
 });
+
+const STORAGE_KEY = "nightlink-demo-v2";
+
+function emptyTableSeats(n: number, filled: (string | null)[]): TableSeat[] {
+  const seats: TableSeat[] = filled.map((userId) => ({ userId }));
+  while (seats.length < n) seats.push({ userId: null });
+  return seats;
+}
 
 export const useNightlink = create<NightlinkState>()(
   persist(
@@ -139,13 +167,19 @@ export const useNightlink = create<NightlinkState>()(
       toastQueue: [],
       giftAnimation: null,
       seatRequests: [],
+      matchCeremony: false,
+      trackIndex: 0,
+      guidedHighlight: null,
 
       setHydrated: (v) => set({ hydrated: v }),
       setDemoMode: (v) => set({ demoMode: v }),
       setGuidedStep: (v) => set({ guidedStep: v }),
+      setGuidedHighlight: (v) => set({ guidedHighlight: v }),
       setAgeVerified: (v) => set({ ageVerified: v }),
       resetAgeVerification: () =>
         set({ ageVerified: false, showAgeGate: false, pendingClubId: null }),
+
+      dismissMatchCeremony: () => set({ matchCeremony: false }),
 
       requestEnterClub: (clubId) => {
         const { ageVerified } = get();
@@ -191,26 +225,36 @@ export const useNightlink = create<NightlinkState>()(
 
       selectProfile: (id) => set({ selectedProfileId: id }),
 
-      sendPoke: (userId) => {
+      sendPoke: (userId, opts) => {
         const conv = get().conversations[userId] ?? defaultConv(userId);
         set({
           conversations: {
             ...get().conversations,
-            [userId]: { ...conv, pokeSent: true },
+            [userId]: { ...conv, pokeSent: true, pokePhase: "waiting" },
           },
+          selectedProfileId: userId,
         });
-        get().pushToast("Poke sent.");
+        get().pushToast("Poke sent · waiting…");
         const attendee = get().getAttendee(userId);
-        if (attendee?.isMayaWave || userId === MAYA_WAVE.id) {
-          setTimeout(() => {
-            get().receivePokeFromMaya();
-          }, 2000);
+        const isMaya = attendee?.isMayaWave || userId === MAYA_WAVE.id;
+        if (isMaya) {
+          if (opts?.instant) {
+            get().receivePokeFromMaya({ instant: true });
+          } else {
+            setTimeout(() => get().receivePokeFromMaya(), 1800);
+          }
         }
       },
 
-      receivePokeFromMaya: () => {
+      receivePokeFromMaya: (opts) => {
         const userId = MAYA_WAVE.id;
         const conv = get().conversations[userId] ?? defaultConv(userId);
+        const openers = MAYA_CHAT_OPENERS.map((text, i) => ({
+          id: uid("msg"),
+          from: "them" as const,
+          text,
+          at: Date.now() + i,
+        }));
         set({
           conversations: {
             ...get().conversations,
@@ -220,22 +264,17 @@ export const useNightlink = create<NightlinkState>()(
               pokeBack: true,
               matched: true,
               unlocked: true,
-              messages:
-                conv.messages.length === 0
-                  ? [
-                      {
-                        id: uid("msg"),
-                        from: "them",
-                        text: "Hey! Felt that poke from across the room ✨ You're into Midnight Signals too?",
-                        at: Date.now(),
-                      },
-                    ]
-                  : conv.messages,
+              pokePhase: "matched",
+              messages: conv.messages.length === 0 ? openers : conv.messages,
             },
           },
+          matchCeremony: true,
         });
-        get().pushToast("MayaWave poked back · MATCHED IN THE CROWD");
-        get().addNotification("Matched with MayaWave — chat unlocked.");
+        get().pushToast("MayaWave poked you back");
+        get().addNotification("YOU MATCHED IN THE CROWD 🔥");
+        if (opts?.instant) {
+          /* keep ceremony visible briefly via UI */
+        }
       },
 
       pokeBack: (userId) => {
@@ -248,10 +287,12 @@ export const useNightlink = create<NightlinkState>()(
               pokeBack: true,
               matched: true,
               unlocked: true,
+              pokePhase: "matched",
             },
           },
+          matchCeremony: true,
         });
-        get().pushToast("Matched · Chat unlocked");
+        get().pushToast("Matched in the crowd");
       },
 
       unlockChat: (userId) => {
@@ -259,13 +300,31 @@ export const useNightlink = create<NightlinkState>()(
         set({
           conversations: {
             ...get().conversations,
-            [userId]: { ...conv, unlocked: true, matched: true },
+            [userId]: {
+              ...conv,
+              unlocked: true,
+              matched: true,
+              pokePhase: "matched",
+            },
           },
           chatOpenWith: userId,
+          matchCeremony: false,
         });
       },
 
-      openChat: (userId) => set({ chatOpenWith: userId }),
+      openChat: (userId) =>
+        set({ chatOpenWith: userId, matchCeremony: false, selectedProfileId: null }),
+
+      seedMayaChat: () => {
+        const userId = MAYA_WAVE.id;
+        const conv = get().conversations[userId] ?? defaultConv(userId);
+        if (conv.messages.length > 0) {
+          set({ chatOpenWith: userId, matchCeremony: false });
+          return;
+        }
+        get().receivePokeFromMaya({ instant: true });
+        set({ chatOpenWith: userId, matchCeremony: false });
+      },
 
       sendMessage: (userId, text) => {
         const conv = get().conversations[userId] ?? defaultConv(userId);
@@ -284,16 +343,12 @@ export const useNightlink = create<NightlinkState>()(
         });
         if (userId === MAYA_WAVE.id) {
           setTimeout(() => {
-            const replies = [
-              "Love that — want to grab a table while KOSMOS is still on?",
-              "Same energy. Table for two?",
-              "Perfect timing. Let's start a private table.",
-            ];
+            const replies = MAYA_CHAT_REPLIES;
             get().simulateReply(
               userId,
               replies[Math.floor(Math.random() * replies.length)]
             );
-          }, 1400);
+          }, 1200);
         }
       },
 
@@ -316,14 +371,10 @@ export const useNightlink = create<NightlinkState>()(
       createTable: (withUserId) => {
         const table: SocialTable = {
           id: uid("table"),
-          number: 4,
+          number: 12,
+          name: "Table 12",
           clubId: get().activeClubId ?? "neon-athens",
-          seats: [
-            { userId: "me" },
-            { userId: withUserId },
-            { userId: null },
-            { userId: null },
-          ],
+          seats: emptyTableSeats(4, ["me", withUserId]),
           maxSeats: 4,
           isVip: false,
           visibility: "PRIVATE",
@@ -332,17 +383,27 @@ export const useNightlink = create<NightlinkState>()(
             {
               id: uid("tc"),
               from: "them",
-              text: "Table's open — still hearing the DJ loud and clear.",
+              text: "Still hearing KOSMOS perfectly from here ✨",
               at: Date.now(),
             },
           ],
           myCameraOn: false,
           myMuted: false,
-          djVolume: 70,
+          djVolume: 72,
+          tableVoices: 65,
+          mayaCameraOn: false,
+          reactions: [],
+          giftFlash: null,
         };
-        set({ myTable: table, chatOpenWith: null });
-        get().pushToast("Private table created · 2/4 seats");
-        get().addNotification("Your social table is live.");
+        set({
+          myTable: table,
+          chatOpenWith: null,
+          selectedProfileId: null,
+          matchCeremony: false,
+          activeClubId: get().activeClubId ?? "neon-athens",
+        });
+        get().pushToast("Table 12 · 2/4 — music continues");
+        get().addNotification("Your social table is live inside the club.");
       },
 
       inviteToTable: (userId) => {
@@ -355,9 +416,23 @@ export const useNightlink = create<NightlinkState>()(
         }
         const seats = [...table.seats];
         seats[emptyIdx] = { userId };
-        set({ myTable: { ...table, seats } });
         const who = get().getAttendee(userId)?.pseudo ?? "Guest";
-        get().pushToast(`${who} joined your table`);
+        set({
+          myTable: {
+            ...table,
+            seats,
+            chat: [
+              ...table.chat,
+              {
+                id: uid("tc"),
+                from: "them",
+                text: `${who}: Hey 👋`,
+                at: Date.now(),
+              },
+            ],
+          },
+        });
+        get().pushToast(`${who} joined · Seat ${emptyIdx + 1}`);
       },
 
       upgradeVip: () => {
@@ -371,11 +446,12 @@ export const useNightlink = create<NightlinkState>()(
             isVip: true,
             maxSeats: 10,
             visibility: "VIP",
+            name: "MIDNIGHT CREW 👑",
             seats,
           },
         });
-        get().pushToast("VIP unlocked · up to 10 seats + video");
-        get().addNotification("VIP table upgrade (demo purchase €4.99).");
+        get().pushToast("VIP UNLOCKED · MIDNIGHT CREW · 10 seats");
+        get().addNotification("VIP table upgrade (demo €4.99).");
       },
 
       leaveTable: () => {
@@ -395,6 +471,21 @@ export const useNightlink = create<NightlinkState>()(
         const t = get().myTable;
         if (t) set({ myTable: { ...t, djVolume: v } });
       },
+      setTableVoices: (v) => {
+        const t = get().myTable;
+        if (t) set({ myTable: { ...t, tableVoices: v } });
+      },
+      setMayaCamera: (on) => {
+        const t = get().myTable;
+        if (t) set({ myTable: { ...t, mayaCameraOn: on } });
+      },
+      askMayaCamera: () => {
+        get().pushToast("Camera request sent…");
+        setTimeout(() => {
+          get().setMayaCamera(true);
+          get().pushToast("MayaWave accepted.");
+        }, 900);
+      },
       sendTableChat: (text) => {
         const t = get().myTable;
         if (!t) return;
@@ -407,6 +498,35 @@ export const useNightlink = create<NightlinkState>()(
             ],
           },
         });
+      },
+      addTableReaction: (emoji) => {
+        const t = get().myTable;
+        if (!t) return;
+        const reaction = { id: uid("rx"), emoji, at: Date.now() };
+        set({
+          myTable: {
+            ...t,
+            reactions: [...t.reactions.slice(-12), reaction],
+          },
+        });
+      },
+      sendTableGift: (gift, toUserId) => {
+        const t = get().myTable;
+        if (!t) return;
+        const to = get().getAttendee(toUserId)?.pseudo ?? "friend";
+        set({
+          myTable: {
+            ...t,
+            giftFlash: { gift, to, at: Date.now() },
+          },
+          giftAnimation: gift,
+        });
+        get().pushToast(`${gift} sent to ${to} (demo)`);
+        setTimeout(() => {
+          const cur = get().myTable;
+          if (cur) set({ myTable: { ...cur, giftFlash: null } });
+          get().clearGiftAnimation();
+        }, 2800);
       },
 
       requestSeat: (tableId) => {
@@ -523,6 +643,39 @@ export const useNightlink = create<NightlinkState>()(
         get().pushToast(`Audience +${n}`);
       },
 
+      nextTrack: () => {
+        const idx = (get().trackIndex + 1) % DEMO_TRACKS.length;
+        const track = DEMO_TRACKS[idx];
+        const clubId = get().activeClubId ?? "neon-athens";
+        set({
+          trackIndex: idx,
+          clubs: get().clubs.map((c) =>
+            c.id === clubId
+              ? {
+                  ...c,
+                  track: {
+                    ...track,
+                    progress: 2,
+                  },
+                }
+              : c
+          ),
+        });
+        get().pushToast(`Now playing · ${track.title}`);
+      },
+
+      driftListeners: () => {
+        const clubId = get().activeClubId ?? "neon-athens";
+        const delta = Math.random() > 0.45 ? 1 : -1;
+        set({
+          clubs: get().clubs.map((c) =>
+            c.id === clubId
+              ? { ...c, listeners: Math.max(120, c.listeners + delta * (1 + Math.floor(Math.random() * 3))) }
+              : c
+          ),
+        });
+      },
+
       addNotification: (text) =>
         set({
           notifications: [
@@ -555,33 +708,56 @@ export const useNightlink = create<NightlinkState>()(
       directorAction: (action) => {
         const maya = MAYA_WAVE.id;
         switch (action) {
-          case "receive-poke": {
-            const conv = get().conversations[maya] ?? defaultConv(maya);
-            set({
-              conversations: {
-                ...get().conversations,
-                [maya]: { ...conv, pokeSent: false },
-              },
-              selectedProfileId: maya,
-            });
-            get().addNotification("MayaWave wants to poke you…");
-            get().pushToast("Incoming poke from MayaWave");
+          case "reset-demo":
+            get().resetEverything();
             break;
-          }
-          case "poke-back":
-            get().sendPoke(maya);
+          case "go-lobby":
+            set({ activeClubId: null, showAgeGate: false });
             break;
-          case "start-chat":
-            get().receivePokeFromMaya();
+          case "enter-athens":
+            get().requestEnterClub("neon-athens");
+            break;
+          case "verify-age":
+            set({ pendingClubId: "neon-athens", ageVerified: false });
+            get().completeAgeGate();
+            set({ ageVerified: true, activeClubId: "neon-athens", showAgeGate: false });
+            get().ensureCrowd("neon-athens");
+            break;
+          case "open-maya":
+            set({ activeClubId: "neon-athens", ageVerified: true });
+            get().ensureCrowd("neon-athens");
+            get().selectProfile(maya);
+            break;
+          case "send-poke":
+            get().sendPoke(maya, { instant: false });
+            break;
+          case "maya-poke-back":
+            get().receivePokeFromMaya({ instant: true });
+            break;
+          case "open-chat":
+            if (!get().conversations[maya]?.unlocked) {
+              get().receivePokeFromMaya({ instant: true });
+            }
             get().openChat(maya);
+            break;
+          case "maya-message":
+            if (!get().conversations[maya]?.unlocked) {
+              get().receivePokeFromMaya({ instant: true });
+            }
+            get().openChat(maya);
+            get().simulateReply(maya, MAYA_CHAT_REPLIES[0]);
             break;
           case "create-table":
             if (!get().conversations[maya]?.unlocked) {
-              get().receivePokeFromMaya();
+              get().receivePokeFromMaya({ instant: true });
             }
             get().createTable(maya);
             break;
-          case "add-third":
+          case "maya-camera":
+            if (!get().myTable) get().createTable(maya);
+            get().askMayaCamera();
+            break;
+          case "invite-alex":
             if (!get().myTable) get().createTable(maya);
             get().inviteToTable("alex-bass");
             break;
@@ -592,19 +768,157 @@ export const useNightlink = create<NightlinkState>()(
             }
             get().upgradeVip();
             break;
-          case "receive-gift":
-            get().sendGift("Champagne");
+          case "send-champagne":
+            if (!get().myTable) {
+              get().createTable(maya);
+              get().inviteToTable("alex-bass");
+            }
+            get().sendTableGift("Champagne", maya);
             break;
-          case "increase-audience":
-            get().increaseAudience(55);
+          case "add-listeners":
+            get().increaseAudience(100);
+            break;
+          case "next-track":
+            get().nextTrack();
+            break;
+          case "crowd-reaction":
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("nightlink-crowd-reaction", {
+                  detail: { emoji: "🔥" },
+                })
+              );
+            }
+            get().pushToast("Crowd reacted 🔥");
             break;
           case "start-birthday":
             get().pushToast("Birthday party is live — open Events");
             get().addNotification("Emma's 30th Birthday is LIVE in Paris.");
             break;
+          // legacy aliases
+          case "receive-poke":
+            get().directorAction("maya-poke-back");
+            break;
+          case "poke-back":
+            get().directorAction("send-poke");
+            break;
+          case "start-chat":
+            get().directorAction("open-chat");
+            break;
+          case "add-third":
+            get().directorAction("invite-alex");
+            break;
+          case "receive-gift":
+            get().directorAction("send-champagne");
+            break;
+          case "increase-audience":
+            get().directorAction("add-listeners");
+            break;
           default:
             break;
         }
+      },
+
+      applyPreset: (preset) => {
+        const maya = MAYA_WAVE.id;
+        get().ensureCrowd("neon-athens");
+        if (preset === "start") {
+          set({
+            ageVerified: false,
+            activeClubId: null,
+            conversations: {},
+            myTable: null,
+            selectedProfileId: null,
+            chatOpenWith: null,
+            matchCeremony: false,
+            showAgeGate: false,
+            pendingClubId: null,
+            audienceBoost: 0,
+            clubs: CLUBS.map((c) => ({ ...c })),
+            trackIndex: 0,
+            demoMode: true,
+          });
+          get().pushToast("Preset START · clean lobby");
+          return;
+        }
+        if (preset === "social") {
+          set({
+            ageVerified: true,
+            activeClubId: "neon-athens",
+            conversations: {},
+            myTable: null,
+            selectedProfileId: maya,
+            chatOpenWith: null,
+            matchCeremony: false,
+            showAgeGate: false,
+            demoMode: true,
+          });
+          get().pushToast("Preset SOCIAL · Maya ready");
+          return;
+        }
+        if (preset === "table") {
+          get().receivePokeFromMaya({ instant: true });
+          get().createTable(maya);
+          set({
+            ageVerified: true,
+            activeClubId: "neon-athens",
+            matchCeremony: false,
+            demoMode: true,
+          });
+          get().pushToast("Preset TABLE · 2/4");
+          return;
+        }
+        if (preset === "vip") {
+          get().receivePokeFromMaya({ instant: true });
+          get().createTable(maya);
+          get().inviteToTable("alex-bass");
+          get().upgradeVip();
+          set({
+            ageVerified: true,
+            activeClubId: "neon-athens",
+            matchCeremony: false,
+            demoMode: true,
+          });
+          get().pushToast("Preset VIP · 3/10 Midnight Crew");
+        }
+      },
+
+      resetEverything: () => {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem("nightlink-demo-v1");
+        } catch {
+          /* noop */
+        }
+        set({
+          hydrated: true,
+          ageVerified: false,
+          demoMode: true,
+          guidedStep: null,
+          guidedHighlight: null,
+          clubs: CLUBS.map((c) => ({ ...c })),
+          crowdByClub: {},
+          conversations: {},
+          myTable: null,
+          activeClubId: null,
+          profile: CURRENT_USER,
+          birthday: { ...BIRTHDAY, giftsReceived: [], wall: [...BIRTHDAY.wall] },
+          notifications: [],
+          favoriteClubs: [],
+          blockedUsers: [],
+          mutedUsers: [],
+          audienceBoost: 0,
+          selectedProfileId: null,
+          chatOpenWith: null,
+          showAgeGate: false,
+          pendingClubId: null,
+          toastQueue: [],
+          giftAnimation: null,
+          seatRequests: [],
+          matchCeremony: false,
+          trackIndex: 0,
+        });
+        get().pushToast("Demo reset — clean slate");
       },
 
       getAttendee: (id) => {
@@ -617,7 +931,7 @@ export const useNightlink = create<NightlinkState>()(
       },
     }),
     {
-      name: "nightlink-demo-v1",
+      name: STORAGE_KEY,
       partialize: (s) => ({
         ageVerified: s.ageVerified,
         clubs: s.clubs,
@@ -631,6 +945,8 @@ export const useNightlink = create<NightlinkState>()(
         mutedUsers: s.mutedUsers,
         audienceBoost: s.audienceBoost,
         demoMode: s.demoMode,
+        trackIndex: s.trackIndex,
+        activeClubId: s.activeClubId,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);

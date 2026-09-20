@@ -85,17 +85,21 @@ export interface Conversation {
   matched: boolean;
   pokeSent: boolean;
   pokeBack: boolean;
+  /** idle | sent | waiting | matched */
+  pokePhase: "idle" | "sent" | "waiting" | "matched";
   messages: ChatMessage[];
 }
 
 export interface TableSeat {
   userId: string | null;
   isVipCamera?: boolean;
+  cameraOn?: boolean;
 }
 
 export interface SocialTable {
   id: string;
   number: number;
+  name: string;
   clubId: string;
   seats: TableSeat[];
   maxSeats: number;
@@ -106,6 +110,10 @@ export interface SocialTable {
   myCameraOn: boolean;
   myMuted: boolean;
   djVolume: number;
+  tableVoices: number;
+  mayaCameraOn: boolean;
+  reactions: { id: string; emoji: string; at: number }[];
+  giftFlash: { gift: GiftType; to: string; at: number } | null;
 }
 
 export interface BirthdayParty {
