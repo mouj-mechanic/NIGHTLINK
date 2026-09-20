@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
@@ -64,16 +64,16 @@ export function DemoDirector() {
   const resetAge = useNightlink((s) => s.resetAgeVerification);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const ageVerified = useNightlink((s) => s.ageVerified);
 
   useEffect(() => {
     if (searchParams.get("demo") === "1") setDemoMode(true);
   }, [searchParams, setDemoMode]);
 
-  useEffect(() => {
-    if (guidedStep === null) return;
-  }, [guidedStep]);
+  const hideForGate = !ageVerified && pathname.startsWith("/club/");
 
-  if (!demoMode) return null;
+  if ((!demoMode && searchParams.get("demo") !== "1") || hideForGate) return null;
 
   const runGuided = (step: number) => {
     setGuidedStep(step);

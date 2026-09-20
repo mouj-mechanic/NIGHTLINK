@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteFooter, SiteHeader } from "@/components/layout/site-chrome";
-import { AgeGate } from "@/components/age-gate/age-gate";
 import { DemoDirector } from "@/components/demo/demo-director";
 import { ToastBridge } from "@/components/shared/toast-bridge";
 import { Providers } from "@/components/shared/providers";
@@ -42,7 +41,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
             <main className="flex-1">{children}</main>
             <SiteFooter />
-            <AgeGate />
             <Suspense fallback={null}>
               <DemoDirector />
             </Suspense>

@@ -45,6 +45,7 @@ import {
 } from "@/lib/audio";
 import type { Attendee, Club } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ClubAgeGate } from "@/components/age-gate/age-gate";
 
 export function ClubRoom({ clubId }: { clubId: string }) {
   const router = useRouter();
@@ -112,12 +113,15 @@ export function ClubRoom({ clubId }: { clubId: string }) {
 
   if (!ageVerified) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <p className="font-display text-2xl text-white">Waiting at the door…</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Complete age verification to enter {club.name}.
-        </p>
-      </div>
+      <>
+        <div className="mx-auto max-w-lg px-4 py-24 text-center">
+          <p className="font-display text-2xl text-white">Waiting at the door…</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Complete age verification to enter {club.name}.
+          </p>
+        </div>
+        <ClubAgeGate clubId={clubId} />
+      </>
     );
   }
 

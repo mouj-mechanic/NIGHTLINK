@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Headphones, Radio, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -100,12 +100,13 @@ function ClubCard({
             <Badge className="bg-amber-500/20 text-amber-200">Your room</Badge>
           )}
         </div>
-        <Button
-          className="w-full bg-gradient-to-r from-violet-600 to-blue-600 text-white"
+        <Link
+          href={`/club/${club.id}`}
           onClick={() => onEnter(club.id)}
+          className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-medium text-white"
         >
           Enter room
-        </Button>
+        </Link>
       </div>
     </motion.article>
   );
@@ -114,7 +115,6 @@ function ClubCard({
 export function WorldLobby() {
   const clubs = useNightlink((s) => s.clubs);
   const requestEnter = useNightlink((s) => s.requestEnterClub);
-  const router = useRouter();
   const [q, setQ] = useState("");
   const [country, setCountry] = useState<string>("all");
   const [genre, setGenre] = useState<string>("all");
@@ -156,7 +156,6 @@ export function WorldLobby() {
 
   const enter = (id: string) => {
     requestEnter(id);
-    router.push(`/club/${id}`);
   };
 
   return (
@@ -206,17 +205,16 @@ export function WorldLobby() {
             transition={{ delay: 0.2 }}
             className="mt-8 flex flex-wrap gap-3"
           >
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-violet-600 to-blue-600 px-6 text-white"
-              onClick={() => enter("neon-athens")}
+            <Link
+              href="/club/neon-athens"
+              onClick={() => requestEnter("neon-athens")}
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-6 text-sm font-medium text-white"
             >
               Enter Neon Athens
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/20"
+            </Link>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-transparent px-6 text-sm font-medium text-white hover:bg-white/5"
               onClick={() =>
                 document
                   .getElementById("clubs")
@@ -224,7 +222,7 @@ export function WorldLobby() {
               }
             >
               Browse clubs
-            </Button>
+            </button>
           </motion.div>
         </div>
       </section>
